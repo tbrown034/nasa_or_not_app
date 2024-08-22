@@ -21,6 +21,12 @@ export default function Home() {
         >
           Random
         </Link>
+        <Link
+          className="p-2 border-2 rounded-xl hover:bg-white hover:text-blue-800 active:bg-blue-800 active:text-white"
+          href="/apodvsai"
+        >
+          APOD vs. AI
+        </Link>
       </div>
     </main>
   );
