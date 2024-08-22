@@ -34,7 +34,7 @@ const Page = () => {
 
   return (
     <div className="flex flex-col gap-4 ">
-      <h1>NASA Picutre of the Day</h1>
+      <h1>NASA Picture of the Day</h1>
       {loading && <p>Loading...</p>}{" "}
       {/* Show loading message while data is being fetched */}
       {error && <p>Error: {error}</p>}{" "}
@@ -43,14 +43,10 @@ const Page = () => {
         !error &&
         apod && ( // Only display data if not loading, no error, and data exists
           <div className="flex flex-col gap-4 p-4 border-2 border-white rounded-xl">
-            <h2>{apod.data.title}</h2>
-            <img
-              className="w-40 h-40"
-              src={apod.data.url}
-              alt={apod.data.title}
-            />
-            <p>{apod.data.explanation}</p>
-            <p>{apod.data.copyright}</p>
+            <h2>{apod.title}</h2>
+            <img className="w-40 h-40" src={apod.url} alt={apod.title} />
+            <p>{apod.explanation}</p>
+            {apod.copyright && <p>{apod.copyright}</p>}
           </div>
         )}
     </div>
