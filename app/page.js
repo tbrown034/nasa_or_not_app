@@ -27,6 +27,12 @@ export default function Home() {
         >
           APOD vs. AI
         </Link>
+        {/* <Link
+          className="p-2 border-2 rounded-xl hover:bg-white hover:text-blue-800 active:bg-blue-800 active:text-white"
+          href="/daily"
+        >
+          Daily
+        </Link> */}
       </div>
     </main>
   );
