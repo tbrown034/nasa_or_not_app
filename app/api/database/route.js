@@ -135,3 +135,54 @@ export async function GET(request) {
     );
   }
 }
+
+// DELETE request: Delete a pair from the database
+export async function DELETE(request) {
+  const { searchParams } = new URL(request.url);
+  const nasaId = searchParams.get("id");
+
+  if (!nasaId) {
+    return NextResponse.json({ error: "NASA ID is required" }, { status: 400 });
+  }
+
+  try {
+    const client = await pool.connect();
+
+    await client.query("BEGIN"); // Start the transaction
+
+    // Delete the AI image first (foreign key dependency)
+    await client.query("DELETE FROM ai_apod WHERE nasa_apod_id = $1", [nasaId]);
+    console.log("AI image deleted successfully");
+
+    // Then delete the NASA image
+    await client.query("DELETE FROM nasa_apod WHERE id = $1", [nasaId]);
+    console.log("NASA image deleted successfully");
+
+    await client.query("COMMIT"); // Commit the transaction
+    client.release();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(
+      "Error deleting data from the database:",
+      error.message || error
+    );
+
+    try {
+      const client = await pool.connect();
+      await client.query("ROLLBACK"); // Rollback the transaction on error
+      console.log("Transaction rolled back due to error.");
+      client.release();
+    } catch (rollbackError) {
+      console.error(
+        "Error during transaction rollback:",
+        rollbackError.message || rollbackError
+      );
+    }
+
+    return NextResponse.json(
+      { error: `Failed to delete data: ${error.message || error}` },
+      { status: 500 }
+    );
+  }
+}

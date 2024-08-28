@@ -51,6 +51,25 @@ const AdminPage = () => {
     return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
   };
 
+  // Handle delete operation
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(`/api/database?id=${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete the image pair");
+      }
+
+      // Update the state to remove the deleted item
+      setNasaApods(nasaApods.filter((apod) => apod.id !== id));
+      setAiApods(aiApods.filter((aiApod) => aiApod.nasa_apod_id !== id));
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
   const filteredNasaApods = nasaApods.filter(
     (apod) =>
       apod.title.toLowerCase().includes(filter.toLowerCase()) ||
@@ -63,20 +82,19 @@ const AdminPage = () => {
       aiApod.date.includes(filter)
   );
 
-  // Sorting logic
+  const getSortIndicator = (key) => {
+    if (sortConfig.key === key) {
+      return sortConfig.direction === "ascending" ? " ^" : " v";
+    }
+    return null;
+  };
+
   const handleSort = (key) => {
     let direction = "ascending";
     if (sortConfig.key === key && sortConfig.direction === "ascending") {
       direction = "descending";
     }
     setSortConfig({ key, direction });
-  };
-
-  const getSortIndicator = (key) => {
-    if (sortConfig.key === key) {
-      return sortConfig.direction === "ascending" ? " ^" : " v";
-    }
-    return null;
   };
 
   const sortedNasaApods = [...filteredNasaApods].sort((a, b) => {
@@ -164,6 +182,9 @@ const AdminPage = () => {
                 >
                   Date Added {getSortIndicator("date_time_added")}
                 </th>
+                <th className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -201,6 +222,14 @@ const AdminPage = () => {
                   </td>
                   <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
                     {formatDate(apod.date_time_added)}
+                  </td>
+                  <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
+                    <button
+                      onClick={() => handleDelete(apod.id)}
+                      className="px-2 py-1 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -255,6 +284,9 @@ const AdminPage = () => {
                 >
                   Date Added {getSortIndicator("date_time_added")}
                 </th>
+                <th className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -292,6 +324,14 @@ const AdminPage = () => {
                   </td>
                   <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
                     {formatDate(aiApod.date_time_added)}
+                  </td>
+                  <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
+                    <button
+                      onClick={() => handleDelete(aiApod.nasa_apod_id)}
+                      className="px-2 py-1 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
