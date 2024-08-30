@@ -8,14 +8,16 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState(""); // State for filtering
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: null }); // State for sorting
+  const [sortConfig, setSortConfig] = useState({
+    key: "id",
+    direction: "ascending",
+  }); // State for sorting
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch NASA APODs
         const nasaResponse = await fetch("/api/database?nasa_apod=true");
         if (!nasaResponse.ok) {
           throw new Error("Failed to fetch NASA APODs");
@@ -23,7 +25,6 @@ const AdminPage = () => {
         const nasaData = await nasaResponse.json();
         setNasaApods(nasaData);
 
-        // Fetch AI APODs
         const aiResponse = await fetch("/api/database?ai_apod=true");
         if (!aiResponse.ok) {
           throw new Error("Failed to fetch AI APODs");
@@ -62,9 +63,8 @@ const AdminPage = () => {
         throw new Error("Failed to delete the image pair");
       }
 
-      // Update the state to remove the deleted item
       setNasaApods(nasaApods.filter((apod) => apod.id !== id));
-      setAiApods(aiApods.filter((aiApod) => aiApod.nasa_apod_id !== id));
+      setAiApods(aiApods.filter((aiApod) => aiApod.id !== id));
     } catch (error) {
       setError(error.message);
     }
@@ -84,7 +84,7 @@ const AdminPage = () => {
 
   const getSortIndicator = (key) => {
     if (sortConfig.key === key) {
-      return sortConfig.direction === "ascending" ? " ^" : " v";
+      return sortConfig.direction === "ascending" ? " ↑" : " ↓";
     }
     return null;
   };
@@ -97,25 +97,17 @@ const AdminPage = () => {
     setSortConfig({ key, direction });
   };
 
-  const sortedNasaApods = [...filteredNasaApods].sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key]) {
-      return sortConfig.direction === "ascending" ? -1 : 1;
-    }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
-      return sortConfig.direction === "ascending" ? 1 : -1;
-    }
-    return 0;
-  });
-
-  const sortedAiApods = [...filteredAiApods].sort((a, b) => {
-    if (a[sortConfig.key] < b[sortConfig.key]) {
-      return sortConfig.direction === "ascending" ? -1 : 1;
-    }
-    if (a[sortConfig.key] > b[sortConfig.key]) {
-      return sortConfig.direction === "ascending" ? 1 : -1;
-    }
-    return 0;
-  });
+  const sortedData = (data) => {
+    return [...data].sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
+    });
+  };
 
   if (loading) return <p className="text-white">Loading...</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
@@ -143,58 +135,38 @@ const AdminPage = () => {
           <table className="min-w-full text-sm text-white bg-gray-800 border-collapse rounded-xl">
             <thead>
               <tr className="bg-gray-700">
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("id")}
-                >
-                  ID {getSortIndicator("id")}
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("title")}
-                >
-                  Title {getSortIndicator("title")}
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("explanation")}
-                >
-                  Explanation {getSortIndicator("explanation")}
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("date")}
-                >
-                  Date {getSortIndicator("date")}
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
-                  URL
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("copyright")}
-                >
-                  Copyright {getSortIndicator("copyright")}
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("date_time_added")}
-                >
-                  Date Added {getSortIndicator("date_time_added")}
-                </th>
+                {[
+                  "id",
+                  "title",
+                  "explanation",
+                  "date",
+                  "url",
+                  "copyright",
+                  "date_time_added",
+                ].map((key) => (
+                  <th
+                    key={key}
+                    className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
+                    onClick={() => handleSort(key)}
+                  >
+                    {key.charAt(0).toUpperCase() +
+                      key.slice(1).replace("_", " ")}{" "}
+                    {getSortIndicator(key)}
+                  </th>
+                ))}
                 <th className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
-              {sortedNasaApods.map((apod, index) => (
+              {sortedData(filteredNasaApods).map((apod) => (
                 <tr
                   key={apod.id}
                   className="transition-colors hover:bg-gray-700"
                 >
                   <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
-                    {index + 1}
+                    {apod.id}
                   </td>
                   <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
                     {apod.title}
@@ -245,61 +217,38 @@ const AdminPage = () => {
           <table className="min-w-full text-sm text-white bg-gray-800 border-collapse rounded-xl">
             <thead>
               <tr className="bg-gray-700">
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("id")}
-                >
-                  ID {getSortIndicator("id")}
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("nasa_apod_id")}
-                >
-                  NASA APOD ID {getSortIndicator("nasa_apod_id")}
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("title")}
-                >
-                  Title {getSortIndicator("title")}
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("explanation")}
-                >
-                  Explanation {getSortIndicator("explanation")}
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("date")}
-                >
-                  Date {getSortIndicator("date")}
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
-                  URL
-                </th>
-                <th
-                  className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
-                  onClick={() => handleSort("date_time_added")}
-                >
-                  Date Added {getSortIndicator("date_time_added")}
-                </th>
+                {[
+                  "id", // Retained 'id' here
+                  "title",
+                  "explanation",
+                  "date",
+                  "url",
+                  "copyright", // Added 'copyright' here
+                  "date_time_added",
+                ].map((key) => (
+                  <th
+                    key={key}
+                    className="px-4 py-3 text-left border-b border-gray-700 border-dotted cursor-pointer hover:bg-gray-600"
+                    onClick={() => handleSort(key)}
+                  >
+                    {key.charAt(0).toUpperCase() +
+                      key.slice(1).replace("_", " ")}{" "}
+                    {getSortIndicator(key)}
+                  </th>
+                ))}
                 <th className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
-              {sortedAiApods.map((aiApod) => (
+              {sortedData(filteredAiApods).map((aiApod) => (
                 <tr
-                  key={aiApod.id}
+                  key={aiApod.id} // Using 'id' as the key
                   className="transition-colors hover:bg-gray-700"
                 >
                   <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
-                    {aiApod.id}
-                  </td>
-                  <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
-                    {aiApod.nasa_apod_id}
+                    {aiApod.id} {/* Displaying 'id' */}
                   </td>
                   <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
                     {aiApod.title}
@@ -323,11 +272,14 @@ const AdminPage = () => {
                     </a>
                   </td>
                   <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
+                    {aiApod.copyright || "N/A"} {/* Displaying 'copyright' */}
+                  </td>
+                  <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
                     {formatDate(aiApod.date_time_added)}
                   </td>
                   <td className="px-4 py-3 text-left border-b border-gray-700 border-dotted">
                     <button
-                      onClick={() => handleDelete(aiApod.nasa_apod_id)}
+                      onClick={() => handleDelete(aiApod.id)} // Using 'id' for deletion
                       className="px-2 py-1 text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white"
                     >
                       Delete
