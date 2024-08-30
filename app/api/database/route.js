@@ -101,19 +101,36 @@ export async function POST(request) {
     );
   }
 }
-
-// GET request: Fetch data from the database
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const nasaApod = searchParams.get("nasa_apod");
   const aiApod = searchParams.get("ai_apod");
+  const randomPair = searchParams.get("random_pair");
 
   try {
     const client = await pool.connect();
-
     let result;
 
-    if (nasaApod) {
+    if (randomPair) {
+      // Fetch a random NASA-AI pair from the database
+      const randomNasa = await client.query(
+        "SELECT * FROM nasa_apod ORDER BY RANDOM() LIMIT 1"
+      );
+      const nasaId = randomNasa.rows[0].id;
+      const aiMatch = await client.query(
+        "SELECT * FROM ai_apod WHERE nasa_apod_id = $1",
+        [nasaId]
+      );
+
+      if (aiMatch.rows.length === 0) {
+        throw new Error("No AI match found for the selected NASA image");
+      }
+
+      result = {
+        nasa: randomNasa.rows[0],
+        ai: aiMatch.rows[0],
+      };
+    } else if (nasaApod) {
       result = await client.query("SELECT * FROM nasa_apod");
     } else if (aiApod) {
       result = await client.query("SELECT * FROM ai_apod");
@@ -126,62 +143,11 @@ export async function GET(request) {
 
     client.release();
 
-    return NextResponse.json(result.rows);
+    return NextResponse.json(result.rows || result);
   } catch (error) {
     console.error("Database query error:", error.message || error);
     return NextResponse.json(
       { error: "Failed to fetch data from the database" },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE request: Delete a pair from the database
-export async function DELETE(request) {
-  const { searchParams } = new URL(request.url);
-  const nasaId = searchParams.get("id");
-
-  if (!nasaId) {
-    return NextResponse.json({ error: "NASA ID is required" }, { status: 400 });
-  }
-
-  try {
-    const client = await pool.connect();
-
-    await client.query("BEGIN"); // Start the transaction
-
-    // Delete the AI image first (foreign key dependency)
-    await client.query("DELETE FROM ai_apod WHERE nasa_apod_id = $1", [nasaId]);
-    console.log("AI image deleted successfully");
-
-    // Then delete the NASA image
-    await client.query("DELETE FROM nasa_apod WHERE id = $1", [nasaId]);
-    console.log("NASA image deleted successfully");
-
-    await client.query("COMMIT"); // Commit the transaction
-    client.release();
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error(
-      "Error deleting data from the database:",
-      error.message || error
-    );
-
-    try {
-      const client = await pool.connect();
-      await client.query("ROLLBACK"); // Rollback the transaction on error
-      console.log("Transaction rolled back due to error.");
-      client.release();
-    } catch (rollbackError) {
-      console.error(
-        "Error during transaction rollback:",
-        rollbackError.message || rollbackError
-      );
-    }
-
-    return NextResponse.json(
-      { error: `Failed to delete data: ${error.message || error}` },
       { status: 500 }
     );
   }
