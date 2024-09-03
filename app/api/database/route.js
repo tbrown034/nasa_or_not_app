@@ -55,16 +55,17 @@ export async function POST(request) {
     }
 
     // Insert AI image with reference to the NASA image
+    // Insert AI image with reference to the NASA image
     console.log("Inserting AI image into the database...");
     await client.query(
-      `INSERT INTO ai_apod (nasa_apod_id, title, explanation, date, url, copyright)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO ai_apod (nasa_apod_id, title, explanation, date, image_data, copyright)
+   VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         nasaId, // Foreign key linking to the NASA image
         nasaData.title,
         nasaData.explanation,
         nasaData.date,
-        aiData.imageUrl,
+        aiData.image_data, // This should be the binary data of the image
         nasaData.copyright,
       ]
     );
